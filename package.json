@@ -1,0 +1,66 @@
+{
+  "name": "dsh-clash-guard",
+  "version": "0.1.0",
+  "description": "Clash Verge 全域代理守卫：三段式（全局/规则/关闭）一键切换，TUN/严格路由/DNS 劫持/系统代理/IPv6/DoH 全链路加固，出口 IP 与真 IP 比对审计。渗透测试开全局即保证本机所有出站流量走代理。零硬编码：管道名、secret、端口、路径、TUN 网关、文案、颜色全部运行时推导。",
+  "icon": "./icon.svg",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "defaults.json",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\"",
+    "check": "node --check lib/index.js && node --check lib/client.js && node --check lib/discover.js && node --check lib/mihomo.js && node --check lib/guard.js && node --check lib/windows.js && node --check lib/http.js && node --check lib/tools.js && node --check lib/paths.js"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "clash",
+    "clash-verge",
+    "mihomo",
+    "proxy",
+    "tun",
+    "leak-test",
+    "pentest"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "^0.1.7-rc.1 || ^0.2.0-rc.1 || ^0.3.0-0",
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "id": "dsh-clash-guard",
+    "name": "Clash 代理守卫",
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

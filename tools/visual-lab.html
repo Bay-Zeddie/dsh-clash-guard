@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>dsh-clash-guard 视觉核验台</title>
+<style>
+  :root { color-scheme: dark; }
+  :root {
+  color-scheme: dark;
+
+  /* 底色：皮肤把 bg-* 全清成透明，露出壁纸 */
+  --dsw-alias-bg-base: transparent;
+  --dsw-alias-bg-layer-1: rgba(255,255,255,.05);
+  --dsw-alias-bg-layer-2: rgba(255,255,255,.07);
+  --dsw-alias-bg-layer-3: rgba(255,255,255,.09);
+  --dsw-alias-bg-overlay: rgba(16,18,22,.86);
+  --dsw-alias-bg-multi-select: rgba(201,124,243,.20);
+
+  /* 文字 */
+  --dsw-alias-label-primary: #ffffff;
+  --dsw-alias-label-secondary: rgba(255,255,255,.78);
+  --dsw-alias-label-tertiary: rgba(255,255,255,.55);
+  --dsw-alias-label-primary-foreground: #0b0d10;
+
+  /* 边框 */
+  --dsw-alias-border-l1: rgba(255,255,255,.16);
+  --dsw-alias-border-l2: rgba(255,255,255,.26);
+  --dsw-alias-border-l3: rgba(255,255,255,.42);
+
+  /* 状态：**皮肤把 warn 两档都映射成 violet** —— 紫 bug 的根源 */
+  --dsw-alias-state-success-primary: #2eff62;
+  --dsw-alias-state-success-secondary: rgba(46,255,98,.20);
+  --dsw-alias-state-warn-primary: #c97cf3;
+  --dsw-alias-state-warn-secondary: #c97cf3;
+  --dsw-alias-state-error-primary: #bf3636;
+  --dsw-alias-state-error-secondary: rgba(191,54,54,.42);
+  --dsw-alias-state-idle-primary: #6b7280;
+
+  /* 交互 */
+  --dsw-alias-interactive-bg-hover: rgba(201,124,243,.20);
+  --dsw-alias-interactive-bg-active: rgba(201,124,243,.32);
+  --dsw-alias-brand-primary: #2eff62;
+  --dsw-focus-ring-color: rgba(46,255,98,.45);
+  --dsw-radius-sm: 8px;
+
+  /* 磨砂：皮肤写死的单档值 */
+  --dsw-menu-backdrop-filter: blur(10px) saturate(160%) brightness(.82);
+}
+
+  html, body { margin: 0; padding: 0; }
+  body {
+    /* 模拟皮肤下的壁纸背景 —— 磨砂效果必须压在东西上才看得出来 */
+    background:
+      radial-gradient(circle at 18% 22%, #3a4a63 0%, transparent 46%),
+      radial-gradient(circle at 82% 18%, #4a3a55 0%, transparent 42%),
+      radial-gradient(circle at 62% 82%, #26343f 0%, transparent 50%),
+      linear-gradient(140deg, #0e141b 0%, #1a2330 42%, #101820 100%);
+    background-attachment: fixed;
+    color: #fff;
+    font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 28px 32px 80px;
+  }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 6px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 34px 0 6px; color: #9fe8b8; }
+  .note { margin: 0 0 14px; color: rgba(255,255,255,.55); font-size: 12px; }
+  .row { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+  .cell { display: flex; flex-direction: column; gap: 6px; }
+  .cell .label { font-size: 11px; color: rgba(255,255,255,.45); font-family: ui-monospace, Consolas, monospace; }
+  .panel { max-width: 900px; }
+  .dskg { height: auto; max-height: none; overflow: visible; padding: 0; }
+
+  /* 插件自己的样式由 buildCss() 注入在下面 */
+:root,
+body {
+  --dskg-frost: var(--dsw-menu-backdrop-filter, blur(10px) saturate(160%) brightness(.82));
+  --dskg-tone-safe-fg: var(--dsw-alias-state-success-primary, #2eff62);
+  --dskg-tone-safe-bg: color-mix(in srgb, var(--dsw-alias-state-success-primary, #059669) 26%, transparent);
+  --dskg-tone-warn-fg: var(--dskg-amber, #f5a524);
+  --dskg-tone-warn-bg: color-mix(in srgb, var(--dskg-amber, #f5a524) 26%, transparent);
+  --dskg-tone-bad-fg: var(--dskg-red, #ff6b6b);
+  --dskg-tone-bad-bg: color-mix(in srgb, var(--dskg-red, #ff6b6b) 26%, transparent);
+  --dskg-amber: #f5a524;
+  --dskg-red: #ff6b6b;
+  --dskg-row-hover: color-mix(in srgb, var(--dsw-alias-label-primary, #fff) 8%, transparent);
+  --dskg-hover: color-mix(in srgb, var(--dsw-alias-label-primary, #fff) 10%, transparent);
+}
+.dskg {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 960px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: calc(28px + var(--dsh-frame-top-clearance, 0px)) clamp(24px, 4vw, 48px) 48px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--dsw-alias-label-primary);
+}
+.dskg-head { display: flex; flex-direction: column; gap: 6px; }
+.dskg-title { margin: 0; font-size: 20px; font-weight: 500; }
+.dskg-sub { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.6; }
+.dskg-card {
+  background: var(--dsw-alias-bg-layer-1);
+  -webkit-backdrop-filter: var(--dskg-frost);
+  backdrop-filter: var(--dskg-frost);
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+.dskg-card + .dskg-card { margin-top: 12px; }
+.dskg-section-title {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dskg-note { margin: 0 0 12px; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.6; }
+.dskg-seg { display: inline-flex; gap: 6px; flex-wrap: wrap; align-self: flex-start; }
+.dskg-seg button {
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 8px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  font: inherit;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  -webkit-backdrop-filter: var(--dskg-frost);
+  backdrop-filter: var(--dskg-frost);
+  transition: background .12s ease, border-color .12s ease;
+}
+.dskg-seg button:hover:not(:disabled) { background: var(--dskg-hover); }
+.dskg-seg button:focus-visible { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: 1px; }
+.dskg-seg button[data-on="1"] {
+  border-color: transparent;
+  color: var(--dsw-alias-label-primary-foreground, #0b0d10);
+  font-weight: 600;
+}
+.dskg-seg button[data-on="1"][data-mode="global"] { background: var(--dskg-tone-safe-fg); }
+.dskg-seg button[data-on="1"][data-mode="rule"] { background: var(--dskg-tone-warn-fg); }
+.dskg-seg button[data-on="1"][data-mode="off"] { background: var(--dskg-tone-bad-fg); }
+.dskg-seg button[data-on="1"][data-mode="off"] { color: #fff; }
+.dskg-seg button:disabled { opacity: .6; cursor: progress; }
+.dskg-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  -webkit-backdrop-filter: var(--dskg-frost);
+  backdrop-filter: var(--dskg-frost);
+  color: var(--dskg-tone-warn-fg);
+  background: var(--dskg-tone-warn-bg);
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+.dskg-verdict[data-v="safe"] {
+  color: var(--dskg-tone-safe-fg);
+  background: var(--dskg-tone-safe-bg);
+}
+.dskg-verdict[data-v="leaking"] {
+  color: var(--dskg-tone-bad-fg);
+  background: var(--dskg-tone-bad-bg);
+}
+.dskg-verdict[data-v="unprotected"] {
+  color: var(--dskg-tone-warn-fg);
+  background: var(--dskg-tone-warn-bg);
+}
+.dskg-checks { display: flex; flex-direction: column; gap: 1px; margin-top: 10px; }
+.dskg-check {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: background-color .12s ease;
+}
+.dskg-check:hover { background: var(--dskg-row-hover); }
+.dskg-mark { font-size: 13px; line-height: 1.5; flex: 0 0 auto; }
+.dskg-check[data-ok="1"] .dskg-mark { color: var(--dskg-tone-safe-fg); }
+.dskg-check[data-ok="0"] .dskg-mark { color: var(--dskg-tone-bad-fg); }
+.dskg-t { font-weight: 500; font-size: 13px; }
+.dskg-d { color: var(--dsw-alias-label-secondary); font-size: 12px; word-break: break-word; line-height: 1.55; }
+.dskg-s {
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 1px 8px;
+  border-radius: 999px;
+  align-self: start;
+  color: var(--dskg-tone-bad-fg);
+  background: var(--dskg-tone-bad-bg);
+}
+.dskg-check[data-ok="0"][data-sev="critical"] {
+  box-shadow: inset 2px 0 0 var(--dskg-tone-bad-fg);
+}
+.dskg-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dskg-btn {
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  font: inherit;
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  -webkit-backdrop-filter: var(--dskg-frost);
+  backdrop-filter: var(--dskg-frost);
+}
+.dskg-btn:hover:not(:disabled) { background: var(--dskg-hover); }
+.dskg-btn:focus-visible { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: 1px; }
+.dskg-btn[data-primary="1"] {
+  background: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-label-primary-foreground, #fff);
+  border-color: transparent;
+  font-weight: 600;
+}
+.dskg-btn:disabled { opacity: .5; cursor: not-allowed; }
+.dskg-kv { display: grid; grid-template-columns: auto 1fr; gap: 5px 18px; font-size: 12px; margin: 12px 0 0; }
+.dskg-kv dt { color: var(--dsw-alias-label-tertiary); white-space: nowrap; }
+.dskg-kv dd { margin: 0; font-variant-numeric: tabular-nums; word-break: break-word; }
+.dskg-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: min(340px, 42vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  margin-top: 10px;
+  padding-right: 4px;
+}
+.dskg-node {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+}
+.dskg-node:hover { background: var(--dskg-hover); }
+.dskg-node:focus-visible { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: -2px; }
+.dskg-node[data-on="1"] {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #2eff62) 14%, transparent);
+  box-shadow: inset 2px 0 0 var(--dsw-alias-brand-primary);
+  font-weight: 600;
+}
+.dskg-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dskg-ty { color: var(--dsw-alias-label-tertiary); font-size: 11px; white-space: nowrap; }
+.dskg-lat { color: var(--dsw-alias-label-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dskg-lat[data-tier="fast"] { color: var(--dskg-tone-safe-fg); }
+.dskg-lat[data-tier="slow"] { color: var(--dskg-tone-warn-fg); }
+.dskg-lat[data-tier="dead"] { color: var(--dskg-tone-bad-fg); }
+.dskg-toggle { display: flex; align-items: center; gap: 10px; font-size: 12px; padding: 6px 2px; cursor: pointer; box-sizing: border-box; }
+.dskg-toggle input { accent-color: var(--dsw-alias-brand-primary); flex: 0 0 auto; }
+.dskg-toggle span { color: var(--dsw-alias-label-secondary); }
+.dskg-err {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--dsw-alias-state-error-secondary);
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  -webkit-backdrop-filter: var(--dskg-frost);
+  backdrop-filter: var(--dskg-frost);
+}
+.dskg-hint { font-size: 11px; line-height: 1.5; color: var(--dsw-alias-label-tertiary); }
+.dskg-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+}
+@media (max-width: 720px) {
+  .dskg { padding-left: 20px; padding-right: 20px; }
+}
+.dskg-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-layer-2);
+  -webkit-backdrop-filter: var(--dskg-frost);
+  backdrop-filter: var(--dskg-frost);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+}
+.dskg-input:focus { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: 1px; }
+.dskg-input::placeholder { color: var(--dsw-alias-label-tertiary); opacity: .85; }
+.dsip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 8px;
+border:none;border-radius:var(--dsw-radius-sm,8px);background-color:transparent;
+color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:500;
+line-height:20px;cursor:pointer;white-space:nowrap;user-select:none;
+transition:background-color .1s ease,opacity .14s ease}
+@media (hover:hover){.dsip:hover{background-color:var(--dskg-hover)}}
+.dsip:active{transform:translateY(.5px)}
+.dsip:focus-visible{
+outline:2px solid color-mix(in srgb,var(--dsw-alias-brand-primary) 45%,transparent);
+outline-offset:1px}
+.dsip[data-busy="1"]{opacity:.65;cursor:progress}
+.dsip[data-checking="1"]{cursor:progress}
+.dsip[data-checking="1"] .dsip-value{color:var(--dsw-alias-label-tertiary)}
+.dsip[data-refreshing="1"] .dsip-dot{animation:dskg-breathe 1.6s ease-in-out infinite}
+@keyframes dskg-breathe{
+0%,100%{opacity:1}
+50%{opacity:.55}
+}
+.dsip-dot[data-tone="checking"]{
+background:var(--dsw-alias-state-idle-primary);
+animation:dskg-pulse 1.1s ease-in-out infinite}
+@keyframes dskg-pulse{
+0%,100%{opacity:.35;box-shadow:0 0 0 0 transparent}
+50%{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-label-primary,#fff) 16%,transparent)}
+}
+.dsip-dot{width:6px;height:6px;border-radius:999px;flex:none;
+background:var(--dsw-alias-state-idle-primary);
+transition:background-color .18s ease,box-shadow .18s ease}
+.dsip-dot[data-tone="on"]{background:var(--dskg-tone-safe-fg);
+box-shadow:0 0 0 3px color-mix(in srgb,var(--dskg-tone-safe-fg) 22%,transparent)}
+.dsip-dot[data-tone="warn"]{background:var(--dskg-tone-warn-fg);
+box-shadow:0 0 0 3px color-mix(in srgb,var(--dskg-tone-warn-fg) 22%,transparent)}
+.dsip-dot[data-tone="off"]{background:var(--dskg-tone-bad-fg);
+box-shadow:0 0 0 3px color-mix(in srgb,var(--dskg-tone-bad-fg) 22%,transparent)}
+.dsip-dot[data-tone="unknown"]{background:transparent;
+box-shadow:inset 0 0 0 1.5px var(--dskg-tone-warn-fg)}
+.dsip-dot[data-tone="idle"]{background:var(--dsw-alias-state-idle-primary);
+box-shadow:none;opacity:.75}
+.dsip-label{color:var(--dsw-alias-label-tertiary)}
+.dsip-value{color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+.dsip[data-tone="on"] .dsip-value{color:var(--dskg-tone-safe-fg)}
+.dsip[data-tone="warn"] .dsip-value{color:var(--dskg-tone-warn-fg)}
+.dsip[data-tone="off"] .dsip-value{color:var(--dskg-tone-bad-fg)}
+.dsip[data-tone="unknown"] .dsip-value{color:var(--dskg-tone-warn-fg)}
+.dsip[data-tone="idle"] .dsip-value{color:var(--dsw-alias-label-tertiary)}
+@media (max-width:1100px){.dsip-value{display:none}.dsip{gap:5px}}
+@media (max-width:860px){.dsip{padding:0 5px}}
+@media (max-width:560px){.dsip-label{display:none}.dsip{padding:0 4px}}
+@media (prefers-reduced-motion:reduce){.dsip,.dsip-dot{transition:none}
+.dsip[data-refreshing="1"] .dsip-dot{animation:none;opacity:.75}
+.dsip-dot[data-tone="checking"]{animation:none;opacity:.7}}
+</style>
+</head>
+<body>
+<h1>dsh-clash-guard 视觉核验台</h1>
+<p class="note">
+  真实组件 + 真实 CSS + 皮肤令牌值。背景是模拟壁纸，用来验证磨砂与对比度。
+  把鼠标停在指示灯上看 title；缩窗口到 &lt;1100px / &lt;860px 看标签折叠。
+</p>
+<h2>出口 IP 指示灯</h2><p class="note">五种结论 + 检测中 / 后台刷新。悬停看 title。</p><div class="row">
+<div class="cell"><div class="label">masked</div><button type="button" class="dsip" data-tone="on" data-checking="0" data-refreshing="0" aria-busy="false" title="三条路径都被遮住，外面看到的是代理 IP，不是本机真 IP。
+
+系统出口（默认路由）：103.187.168.155
+代理出口（混合端口）：103.187.168.155
+校准真 IP：39.144.124.132
+
+点击立即重新检测" aria-label="出口 IP: 已隐藏"><span class="dsip-dot" data-tone="on" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">已隐藏</span></button></div>
+<div class="cell"><div class="label">exposed</div><button type="button" class="dsip" data-tone="off" data-checking="0" data-refreshing="0" aria-busy="false" title="本机真实 IP 39.144.124.132 正在暴露 —— 至少一条出网路径直接用了它。
+
+系统出口（默认路由）：39.144.124.132
+代理出口（混合端口）：103.187.168.155
+校准真 IP：39.144.124.132
+
+点击立即重新检测" aria-label="出口 IP: 真 IP 暴露"><span class="dsip-dot" data-tone="off" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">真 IP 暴露</span></button></div>
+<div class="cell"><div class="label">bypassable</div><button type="button" class="dsip" data-tone="warn" data-checking="0" data-refreshing="0" aria-busy="false" title="绑物理网卡能直接出网（18.183.108.154），虽然当前拿到的不是真 IP，但这条路随时会被绑卡程序走通。
+
+系统出口（默认路由）：103.187.168.155
+代理出口（混合端口）：103.187.168.155
+绑卡出口（物理网卡）：18.183.108.154
+校准真 IP：39.144.124.132
+
+点击立即重新检测" aria-label="出口 IP: 可绕过"><span class="dsip-dot" data-tone="warn" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">可绕过</span></button></div>
+<div class="cell"><div class="label">uncalibrated</div><button type="button" class="dsip" data-tone="unknown" data-checking="0" data-refreshing="0" aria-busy="false" title="尚未校准真 IP，无法判断是否暴露。在「关闭」档位点一次「校准真 IP」。
+
+系统出口（默认路由）：103.187.168.155
+代理出口（混合端口）：103.187.168.155
+校准真 IP：尚未校准
+
+点击立即重新检测" aria-label="出口 IP: 待校准"><span class="dsip-dot" data-tone="unknown" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">待校准</span></button></div>
+<div class="cell"><div class="label">noEgress</div><button type="button" class="dsip" data-tone="idle" data-checking="0" data-refreshing="0" aria-busy="false" title="三条路径都取不到出口 IP。
+
+校准真 IP：39.144.124.132
+
+点击立即重新检测" aria-label="出口 IP: 无出口"><span class="dsip-dot" data-tone="idle" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">无出口</span></button></div>
+<div class="cell"><div class="label">checking（首屏）</div><button type="button" class="dsip" data-tone="checking" data-checking="1" data-refreshing="0" aria-busy="true" title="正在检测整机出口（系统 / 代理 / 绑卡三条路径）…
+
+点击立即重新检测" aria-label="出口 IP: 检测中"><span class="dsip-dot" data-tone="checking" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">检测中</span></button></div>
+<div class="cell"><div class="label">refreshing（后台）</div><button type="button" class="dsip" data-tone="on" data-checking="0" data-refreshing="1" aria-busy="true" title="三条路径都被遮住，外面看到的是代理 IP，不是本机真 IP。
+
+系统出口（默认路由）：103.187.168.155
+代理出口（混合端口）：103.187.168.155
+校准真 IP：39.144.124.132
+
+正在后台刷新…
+
+点击立即重新检测" aria-label="出口 IP: 已隐藏"><span class="dsip-dot" data-tone="on" aria-hidden="true"></span><span class="dsip-label">出口 IP</span><span class="dsip-value">已隐藏</span></button></div>
+</div>
+<h2>主面板 · 控制器可达</h2><p class="note">四张卡片：模式 / 泄漏审计 / 出口节点 / 加固项，外加内核与服务。</p><div class="panel">
+<div class="dskg"><div class="dskg-head"><h2 class="dskg-title">Clash 代理守卫</h2><p class="dskg-sub">三段式开关 + 全链路加固 + 泄漏审计。渗透测试时开全局，保证本机所有出站流量走代理，不暴露真实 IP。</p></div><div class="dskg-card"><div class="dskg-section-title">内核与服务</div><p class="dskg-note">内核由 Windows 服务守护，GUI 只是前端。关掉 Clash Verge 窗口不影响这里；内核不在时插件可以自己把它拉起来。</p><dl class="dskg-kv" style="margin-top:0"><dt >内核进程</dt><dd >运行中 · PID 3752</dd><dt >控制器</dt><dd >可达 · v1.19.33</dd><dt >Windows 服务</dt><dd >运行中 · Auto</dd><dt >GUI 进程</dt><dd >未运行</dd><dt >服务期望内核</dt><dd >需要</dd></dl><p class="dskg-hint" style="margin-top:8px">内核在跑，控制器可达，GUI 未启动 —— 插件可独立控制</p><p class="dskg-hint">不依赖 GUI：实测关闭 clash-verge.exe 后内核与管道照常存活、照常可控。</p><div class="dskg-row" style="margin-top:10px"><button class="dskg-btn" type="button" data-primary="0">启动内核</button><button class="dskg-btn" type="button">重启内核</button></div></div><div class="dskg-card"><div class="dskg-section-title">模式</div><p class="dskg-note">全局会同时开启 TUN、严格路由、系统代理、DNS 劫持，断开旧连接，并关断物理网卡 IPv6。关闭会把上面这些系统改动按基线精确回滚。</p><div class="dskg-seg"><button key="global" type="button" data-on="1" data-mode="global" title="所有流量走代理，已加固">全局</button><button key="rule" type="button" data-on="0" data-mode="rule" title="按配置规则分流">规则</button><button key="off" type="button" data-on="0" data-mode="off" title="直连，系统改动已撤销">关闭</button></div><dl class="dskg-kv"><dt >当前模式</dt><dd >全局（内核 global）</dd><dt >控制器</dt><dd >命名管道 · 内核进程命令行</dd><dt >混合端口</dt><dd >7897</dd><dt >管理员权限</dt><dd >已获得</dd><dt >真 IP</dt><dd >39.144.124.132</dd></dl></div><div class="dskg-card"><div class="dskg-section-title">泄漏审计</div><p class="dskg-note">每一条都是可判定的事实。红色项意味着真实 IP 可能正在暴露。</p><div class="dskg-row"><button class="dskg-btn" type="button" data-primary="1">运行审计</button><button class="dskg-btn" type="button">校准真 IP</button><span class="dskg-verdict" data-v="leaking">正在泄漏</span></div><dl class="dskg-kv"><dt >出口 IP</dt><dd >103.187.168.155</dd><dt >真 IP</dt><dd >39.144.124.132</dd><dt >活连接</dt><dd >28 / 直连 19</dd></dl><div class="dskg-checks"><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">内核处于全局模式</div><div class="dskg-d">mode=global</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">TUN 已开启</div><div class="dskg-d">协议栈=gVisor，自动路由=开，来源=运行时</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">TUN 自动路由已开启</div><div class="dskg-d">auto-route=true</div></div></div><div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">TUN 严格路由已开启</div><div class="dskg-d">strict-route=true</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">DNS fake-ip 已开启</div><div class="dskg-d">enable=true，enhanced-mode=fake-ip，来源=配置文件</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">DNS 劫持覆盖全部网段</div><div class="dskg-d">any:53</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">选择器出口不是直连/拒绝</div><div class="dskg-d">GLOBAL=日本JP-HY2</div></div></div><div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">global 模式下没有直连活连接</div><div class="dskg-d">19/28 条连接直连 —— 真实 IP 正在暴露。切换到 global 会断开全部旧连接，请重新切换一次</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div><div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">global 模式下没有进程直连</div><div class="dskg-d">3 个进程在直连：wps.exe(2/2), WorkBuddy.exe(2/2), node.exe(1/1)</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div><div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">物理网卡无法绕过 TUN</div><div class="dskg-d">绑定 10.252.28.236 能连到 1.1.1.1:80 —— 这条路径绕过了 TUN</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div><div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">默认路由由 TUN 独占</div><div class="dskg-d">物理网卡与 TUN 的默认路由 metric 竞争：WLAN(metric 0) vs TUN(metric 0) —— 绑物理网卡的流量可能直连</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div><div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">系统解析走 fake-ip</div><div class="dskg-d">www.gstatic.com → 198.18.0.108（系统解析走 mihomo fake-ip）</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">代理出口可用</div><div class="dskg-d">103.187.168.155（via https://api.ipify.org）</div></div></div><div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">出口 IP 不等于校准的真 IP</div><div class="dskg-d">出口 103.187.168.155 != 真 IP 39.144.124.132</div></div></div><div class="dskg-check" data-ok="1" data-sev="medium"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">WinINET 系统代理指向混合端口</div><div class="dskg-d">127.0.0.1:7897</div></div></div><div class="dskg-check" data-ok="0" data-sev="low"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">WinHTTP 代理已设置</div><div class="dskg-d">Direct access（部分服务/后台进程不受 WinINET 影响）</div></div><span class="dskg-s" title="这条一旦失败有多要紧">低</span></div><div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">DoH 自动升级已关闭</div><div class="dskg-d">EnableAutoDoh=0</div></div></div><div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">物理网卡 IPv6 已关断</div><div class="dskg-d">WLAN IPv6 unbound</div></div></div><div class="dskg-check" data-ok="1" data-sev="medium"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">物理网卡 DNS 不指向 ISP</div><div class="dskg-d">WLAN: 198.18.0.2（期望 198.18.0.2）</div></div></div></div></div><div class="dskg-card"><div class="dskg-section-title">出口节点</div><p class="dskg-note">全局模式下，这一组的选择决定所有流量走哪个节点。直连/拒绝类节点已过滤。</p><div class="dskg-row"><button class="dskg-btn" type="button">刷新</button><span class="dskg-hint">日本JP-HY2</span></div><div class="dskg-nodes"><button key="日本JP-HY2" type="button" class="dskg-node" data-on="1" title="日本JP-HY2"><span class="dskg-nm">日本JP-HY2</span><span class="dskg-ty">Hysteria2</span><span class="dskg-lat" data-tier="fast">74ms</span></button><button key="新加坡04-0.1倍" type="button" class="dskg-node" data-on="0" title="新加坡04-0.1倍"><span class="dskg-nm">新加坡04-0.1倍</span><span class="dskg-ty">Vless</span><span class="dskg-lat" data-tier="ok">158ms</span></button><button key="美国圣何塞01 | 三网推荐" type="button" class="dskg-node" data-on="0" title="美国圣何塞01 | 三网推荐"><span class="dskg-nm">美国圣何塞01 | 三网推荐</span><span class="dskg-ty">Vless</span><span class="dskg-lat" data-tier="ok">210ms</span></button><button key="台湾3 | 避免晚高峰使用" type="button" class="dskg-node" data-on="0" title="台湾3 | 避免晚高峰使用（不可用）"><span class="dskg-nm">台湾3 | 避免晚高峰使用</span><span class="dskg-ty">Hysteria2</span><span class="dskg-lat" data-tier="dead">不可用</span></button><button key="AWS日本03 | 电信移动联通推荐" type="button" class="dskg-node" data-on="0" title="AWS日本03 | 电信移动联通推荐"><span class="dskg-nm">AWS日本03 | 电信移动联通推荐</span><span class="dskg-ty">Vless</span><span class="dskg-lat" data-tier="slow">3932ms</span></button></div></div><div class="dskg-card"><div class="dskg-section-title">加固项</div><p class="dskg-note">这些开关只影响「全局」档位执行哪些加固动作。关掉某一项就是主动接受那一条泄漏面。</p><label key="strictRoute" class="dskg-toggle"><input type="checkbox" checked><span >强制 TUN 严格路由（堵住绑物理网卡的应用）</span></label><label key="systemProxy" class="dskg-toggle"><input type="checkbox" checked><span >同时开 WinINET 系统代理</span></label><label key="winHttpProxy" class="dskg-toggle"><input type="checkbox" checked><span >同时设置 WinHTTP 代理</span></label><label key="disableIpv6" class="dskg-toggle"><input type="checkbox" checked><span >关断物理网卡 IPv6</span></label><label key="pointDns" class="dskg-toggle"><input type="checkbox" checked><span >物理网卡 DNS 指向 TUN 网关</span></label><label key="disableAutoDoh" class="dskg-toggle"><input type="checkbox" checked><span >关闭 DoH 自动升级</span></label><label key="closeConnections" class="dskg-toggle"><input type="checkbox" checked><span >切换时断开全部旧连接</span></label><div class="dskg-row" style="margin-top:12px"><button class="dskg-btn" type="button" data-primary="1">保存加固项</button></div></div></div>
+</div>
+<h2>主面板 · 控制器不可达</h2><p class="note">必须给出诊断，不能白屏。</p><div class="panel">
+<div class="dskg"><div class="dskg-head"><h2 class="dskg-title">Clash 代理守卫</h2><p class="dskg-sub">三段式开关 + 全链路加固 + 泄漏审计。渗透测试时开全局，保证本机所有出站流量走代理，不暴露真实 IP。</p></div><div key="unreachable" class="dskg-card"><div class="dskg-section-title">Clash 控制器不可达</div><p class="dskg-note">没有候选应答 /version</p><div class="dskg-checks"><div key="0" class="dskg-check" data-ok="0"><span class="dskg-mark">✘</span><div ><div class="dskg-t">process:command-line</div><div class="dskg-d">pipe · ENOENT</div></div><span class="dskg-s"></span></div><div key="1" class="dskg-check" data-ok="0"><span class="dskg-mark">✘</span><div ><div class="dskg-t">pipe:enumeration</div><div class="dskg-d">pipe · ENOENT</div></div><span class="dskg-s"></span></div><div key="2" class="dskg-check" data-ok="0"><span class="dskg-mark">✘</span><div ><div class="dskg-t">config:clash-verge.yaml</div><div class="dskg-d">pipe · ENOENT</div></div><span class="dskg-s"></span></div><div key="3" class="dskg-check" data-ok="0"><span class="dskg-mark">✘</span><div ><div class="dskg-t">config:clash-verge.yaml:tcp</div><div class="dskg-d">tcp · ECONNREFUSED</div></div><span class="dskg-s"></span></div></div><div class="dskg-row" style="margin-top:12px"><button class="dskg-btn" type="button">刷新</button></div></div><div class="dskg-card"><div class="dskg-section-title">内核与服务</div><p class="dskg-note">内核由 Windows 服务守护，GUI 只是前端。关掉 Clash Verge 窗口不影响这里；内核不在时插件可以自己把它拉起来。</p><dl class="dskg-kv" style="margin-top:0"><dt >内核进程</dt><dd >运行中</dd><dt >Windows 服务</dt><dd >运行中</dd><dt >GUI 进程</dt><dd >未运行</dd></dl><p class="dskg-hint" style="margin-top:8px">内核在跑，控制器可达，GUI 未启动 —— 插件可独立控制</p><div class="dskg-row" style="margin-top:10px"><button class="dskg-btn" type="button" data-primary="1">启动内核</button><button class="dskg-btn" type="button">重启内核</button></div></div></div>
+</div>
+<h2>主面板 · 首屏加载</h2><div class="panel">
+<div class="dskg"><div class="dskg-card"><div class="dskg-empty">正在读取 Clash 状态…</div></div></div>
+</div>
+<h2>审计清单 · 四种严重度 × 通过与失败</h2><div class="panel"><div class="dskg-card">
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">内核处于全局模式</div><div class="dskg-d">mode=global</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">TUN 已开启</div><div class="dskg-d">协议栈=gVisor，自动路由=开，来源=运行时</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">TUN 自动路由已开启</div><div class="dskg-d">auto-route=true</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">TUN 严格路由已开启</div><div class="dskg-d">strict-route=true</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">DNS fake-ip 已开启</div><div class="dskg-d">enable=true，enhanced-mode=fake-ip，来源=配置文件</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">DNS 劫持覆盖全部网段</div><div class="dskg-d">any:53</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">选择器出口不是直连/拒绝</div><div class="dskg-d">GLOBAL=日本JP-HY2</div></div></div>
+<div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">global 模式下没有直连活连接</div><div class="dskg-d">19/28 条连接直连 —— 真实 IP 正在暴露。切换到 global 会断开全部旧连接，请重新切换一次</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div>
+<div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">global 模式下没有进程直连</div><div class="dskg-d">3 个进程在直连：wps.exe(2/2), WorkBuddy.exe(2/2), node.exe(1/1)</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div>
+<div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">物理网卡无法绕过 TUN</div><div class="dskg-d">绑定 10.252.28.236 能连到 1.1.1.1:80 —— 这条路径绕过了 TUN</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div>
+<div class="dskg-check" data-ok="0" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">默认路由由 TUN 独占</div><div class="dskg-d">物理网卡与 TUN 的默认路由 metric 竞争：WLAN(metric 0) vs TUN(metric 0) —— 绑物理网卡的流量可能直连</div></div><span class="dskg-s" title="这条一旦失败有多要紧">严重</span></div>
+<div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">系统解析走 fake-ip</div><div class="dskg-d">www.gstatic.com → 198.18.0.108（系统解析走 mihomo fake-ip）</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">代理出口可用</div><div class="dskg-d">103.187.168.155（via https://api.ipify.org）</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="critical"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">出口 IP 不等于校准的真 IP</div><div class="dskg-d">出口 103.187.168.155 != 真 IP 39.144.124.132</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="medium"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">WinINET 系统代理指向混合端口</div><div class="dskg-d">127.0.0.1:7897</div></div></div>
+<div class="dskg-check" data-ok="0" data-sev="low"><span class="dskg-mark" aria-hidden="true">✘</span><div ><div class="dskg-t">WinHTTP 代理已设置</div><div class="dskg-d">Direct access（部分服务/后台进程不受 WinINET 影响）</div></div><span class="dskg-s" title="这条一旦失败有多要紧">低</span></div>
+<div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">DoH 自动升级已关闭</div><div class="dskg-d">EnableAutoDoh=0</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="high"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">物理网卡 IPv6 已关断</div><div class="dskg-d">WLAN IPv6 unbound</div></div></div>
+<div class="dskg-check" data-ok="1" data-sev="medium"><span class="dskg-mark" aria-hidden="true">✔</span><div ><div class="dskg-t">物理网卡 DNS 不指向 ISP</div><div class="dskg-d">WLAN: 198.18.0.2（期望 198.18.0.2）</div></div></div>
+</div></div>
+<h2>三段式小开关（enablePill 开启时）</h2><div class="row">
+<div class="cell"><div class="label">global</div><div class="dskg-seg" style="padding:2px"><button key="global" type="button" data-on="1" data-mode="global" style="padding:4px 10px;font-size:11px">全局</button><button key="rule" type="button" data-on="0" data-mode="rule" style="padding:4px 10px;font-size:11px">规则</button><button key="off" type="button" data-on="0" data-mode="off" style="padding:4px 10px;font-size:11px">关闭</button></div></div>
+<div class="cell"><div class="label">rule</div><div class="dskg-seg" style="padding:2px"><button key="global" type="button" data-on="0" data-mode="global" style="padding:4px 10px;font-size:11px">全局</button><button key="rule" type="button" data-on="1" data-mode="rule" style="padding:4px 10px;font-size:11px">规则</button><button key="off" type="button" data-on="0" data-mode="off" style="padding:4px 10px;font-size:11px">关闭</button></div></div>
+<div class="cell"><div class="label">off</div><div class="dskg-seg" style="padding:2px"><button key="global" type="button" data-on="0" data-mode="global" style="padding:4px 10px;font-size:11px">全局</button><button key="rule" type="button" data-on="0" data-mode="rule" style="padding:4px 10px;font-size:11px">规则</button><button key="off" type="button" data-on="1" data-mode="off" style="padding:4px 10px;font-size:11px">关闭</button></div></div>
+</div>
+</body>
+</html>
