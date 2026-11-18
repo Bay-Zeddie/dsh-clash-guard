@@ -93,7 +93,19 @@
       "DIRECT",
       "REJECT"
     ],
-    "selectorGroup": "GLOBAL"
+    "selectorGroup": "GLOBAL",
+    "infoNodePatterns": [
+      "剩余流量",
+      "套餐到期",
+      "过期",
+      "官网",
+      "订阅",
+      "流量重置",
+      "expire",
+      "traffic",
+      "重置"
+    ],
+    "_infoNodeComment": "机场信息节点（显示订阅余额/到期的假节点）不能出现在可切换列表里：切到它等于断网。"
   },
   "discovery": {
     "appDirPatterns": [
