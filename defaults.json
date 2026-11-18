@@ -177,6 +177,7 @@
       "auto-route": "critical",
       "dns-fakeip": "critical",
       "dns-hijack": "critical",
+      "controller-secret": "medium",
       "global-selector": "critical",
       "live-direct": "critical",
       "egress": "critical",

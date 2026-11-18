@@ -557,6 +557,14 @@ PATCH /configs {"dns":{...}}  →  HTTP 204（看起来成功）
 
 ---
 
+### 后续可精进（按性价比排序）
+
+1. **WFP kill-switch**（见上）—— 唯一能真正堵住绑卡直连的手段
+2. **/connections WebSocket 订阅** —— mihomo 支持实时推送连接表，
+   比指示灯 30s 轮询实时得多；需要 DSH 侧开 WebSocket 通道
+3. **秘密管理** —— Clash Verge Rev 默认 secret 是 `set-your-secret`
+   （官方讨论 #6951 确认），审计应检查它是否还是默认值
+
 ## License
 
 MIT
