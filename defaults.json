@@ -1,6 +1,5 @@
 {
   "_comment": "dsh-clash-guard 默认配置。所有可调值集中在这里，代码里不出现字面量。settings.json 里的同名键覆盖本文件；环境变量 DSH_CLASH_GUARD_<PATH> 再覆盖一层（__ 分隔层级）。",
-
   "controller": {
     "pipeName": "",
     "controllerUrl": "",
@@ -8,12 +7,10 @@
     "requestTimeoutMs": 8000,
     "defaultHost": "127.0.0.1"
   },
-
   "ports": {
     "mixedPort": 0,
     "fallbackMixedPort": 0
   },
-
   "leaks": {
     "_comment": "泄漏探针参数。目的是把「是不是真的暴露」拆成可判定的独立事实，而不是看开关脸色。",
     "dnsProbeName": "www.gstatic.com",
@@ -41,7 +38,6 @@
       "cooldownMs": 60000
     }
   },
-
   "harden": {
     "strictRoute": true,
     "systemProxy": true,
@@ -56,27 +52,25 @@
     "_raiseRouteMetricComment": "抬高物理网卡 metric。实测对绑卡流量无效（Windows 的 bind 无视 metric），默认关。",
     "physicalRouteMetric": 9000
   },
-
   "firewall": {
     "_comment": "接口级出站封锁的规则名。固定前缀，撤销时按前缀精确删除，绝不碰用户自己的规则。",
     "rulePrefix": "dsh-clash-guard/",
     "blockSuffix": "block-physical-egress",
     "allowSuffix": "allow-core-egress"
   },
-
   "tun": {
     "enable": true,
     "autoRoute": true,
     "autoDetectInterface": true,
     "stack": ""
   },
-
   "dns": {
     "enable": true,
     "enhancedMode": "fake-ip",
-    "hijack": ["any:53"]
+    "hijack": [
+      "any:53"
+    ]
   },
-
   "egress": {
     "endpoints": [
       "https://api.ipify.org",
@@ -89,46 +83,93 @@
     "userAgent": "dsh-clash-guard",
     "proxyHost": "127.0.0.1"
   },
-
   "bypass": {
-    "loopback": ["localhost", "127.*", "<local>"],
-    "terminalNames": ["DIRECT", "REJECT"],
+    "loopback": [
+      "localhost",
+      "127.*",
+      "<local>"
+    ],
+    "terminalNames": [
+      "DIRECT",
+      "REJECT"
+    ],
     "selectorGroup": "GLOBAL"
   },
-
   "discovery": {
-    "appDirPatterns": ["clash-verge", "clashverge"],
-    "serviceDirPatterns": ["clash-verge-service", "clashverge-service"],
-    "coreNames": ["verge-mihomo", "mihomo", "clash-meta", "clash"],
-    "pipePrefixes": ["verge-mihomo-", "mihomo-", "clash-"],
-    "configFileNames": ["clash-verge.yaml", "config.yaml", "verge.yaml"],
+    "appDirPatterns": [
+      "clash-verge",
+      "clashverge"
+    ],
+    "serviceDirPatterns": [
+      "clash-verge-service",
+      "clashverge-service"
+    ],
+    "coreNames": [
+      "verge-mihomo",
+      "mihomo",
+      "clash-meta",
+      "clash"
+    ],
+    "pipePrefixes": [
+      "verge-mihomo-",
+      "mihomo-",
+      "clash-"
+    ],
+    "configFileNames": [
+      "clash-verge.yaml",
+      "config.yaml",
+      "verge.yaml"
+    ],
     "runtimeConfigName": "config.yaml",
     "runtimeUsersDir": "users",
     "runtimeSubdir": "runtime",
     "desiredStateFileName": "desired-state.json",
     "processQueryTimeoutMs": 8000,
-    "tunAdapterPatterns": ["mihomo", "clash", "meta", "tun", "wintun"],
-    "virtualAdapterPatterns": ["vmware", "virtualbox", "hyper-v", "vethernet", "loopback", "bluetooth"]
+    "tunAdapterPatterns": [
+      "mihomo",
+      "clash",
+      "meta",
+      "tun",
+      "wintun"
+    ],
+    "virtualAdapterPatterns": [
+      "vmware",
+      "virtualbox",
+      "hyper-v",
+      "vethernet",
+      "loopback",
+      "bluetooth"
+    ]
   },
-
   "windows": {
     "powershell": "powershell.exe",
-    "powershellFlags": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command"],
+    "powershellFlags": [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command"
+    ],
     "internetSettingsKey": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
     "autoDohKey": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters",
     "autoDohValue": "EnableAutoDoh",
     "ipv6ComponentId": "ms_tcpip6",
-    "wininetRefreshFlags": [39, 37],
+    "wininetRefreshFlags": [
+      39,
+      37
+    ],
     "defaultRoutePrefix": "0.0.0.0/0",
     "netshShowProxy": "netsh winhttp show proxy",
     "netshSetProxy": "netsh winhttp set proxy",
     "netshResetProxy": "netsh winhttp reset proxy",
-    "directAccessPatterns": ["Direct access", "直接访问"],
+    "directAccessPatterns": [
+      "Direct access",
+      "直接访问"
+    ],
     "tunDnsSuffix": ".2",
     "commandTimeoutMs": 20000,
     "maxBufferBytes": 4194304
   },
-
   "audit": {
     "severities": {
       "mode": "critical",
@@ -149,11 +190,14 @@
       "process-direct": "critical",
       "interface-bypass": "critical",
       "default-routes": "critical",
+      "machine-traffic": "critical",
       "system-resolver": "high"
     },
-    "blockingSeverities": ["critical", "high"]
+    "blockingSeverities": [
+      "critical",
+      "high"
+    ]
   },
-
   "http": {
     "prefix": "/dsh-clash-guard",
     "maxBodyBytes": 16384,
@@ -170,13 +214,11 @@
       "net": "/net"
     }
   },
-
   "locale": {
     "file": "locale/strings.json",
     "fallback": "zh",
     "defaultLocale": "zh"
   },
-
   "ui": {
     "panelSlot": "sidebar.panellist",
     "panelId": "dsh-clash-guard",
@@ -209,7 +251,6 @@
     "maxContentWidth": 960,
     "topClearanceVar": "--dsh-frame-top-clearance"
   },
-
   "tools": {
     "status": "clash_status",
     "mode": "clash_mode",
@@ -217,13 +258,11 @@
     "nodes": "clash_nodes",
     "calibrate": "clash_calibrate"
   },
-
   "modes": {
     "global": "global",
     "rule": "rule",
     "off": "direct"
   },
-
   "verge": {
     "modeKey": "mode",
     "backupSuffix": ".clash-guard.bak",
@@ -231,7 +270,6 @@
     "writeRuntimeConfig": true,
     "_writeRuntimeComment": "必须双写：runtime/config.yaml 是服务重启内核时直接读的那份，只写 clash-verge.yaml 会在内核重启后回退。"
   },
-
   "selfheal": {
     "_comment": "网络自愈。防的是这个真实事故：Clash 非正常退出后物理网卡 DNS 停在 198.18.0.2（TUN 网关），内核已死 → 整机域名解析全部超时。2026-11-18 连续两次复发，靠人记着「正常退出」不管用。",
     "watchdog": true,
@@ -241,12 +279,17 @@
     "healOnStart": true,
     "_healOnStartComment": "插件加载时先体检一次。进程刚起时最容易撞上上次的残留。"
   },
-
   "core": {
     "_comment": "内核生命周期。内核由 Windows 服务守护（开机自启），GUI 只是前端；插件可完全脱离 GUI 控制。",
     "serviceName": "clash_verge_service",
-    "coreProcessNames": ["verge-mihomo", "mihomo", "clash-meta"],
-    "guiProcessNames": ["clash-verge"],
+    "coreProcessNames": [
+      "verge-mihomo",
+      "mihomo",
+      "clash-meta"
+    ],
+    "guiProcessNames": [
+      "clash-verge"
+    ],
     "startTimeoutMs": 20000,
     "stopTimeoutMs": 12000,
     "pollIntervalMs": 500,
@@ -257,7 +300,6 @@
     "allowDirectSpawn": false,
     "_allowDirectSpawnComment": "允许插件绕过服务直接 spawn 内核。默认 false，别开。2026-11-18 事故：插件 spawn 的内核成了孤儿进程（PID 11480），Clash 之后启动时服务报「refusing a second core」拒绝起核，而 DNS 已被改成 198.18.0.2 → 整机断网。内核是服务的孩子，不能由插件收养。"
   },
-
   "glass": {
     "_comment": "磨砂配方。与 dsh-sunfragment-skin 逐字对齐：单档薄磨砂，全站一个数值。优先读官方令牌 --dsw-menu-backdrop-filter（皮肤装了就跟皮肤走），缺失时用同一份兜底值。",
     "token": "--dsw-menu-backdrop-filter",
