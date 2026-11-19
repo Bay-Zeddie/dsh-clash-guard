@@ -37,7 +37,10 @@
       "onLeak": "global",
       "cooldownMs": 60000
     },
-    "latencyTestUrl": "https://www.gstatic.com/generate_204"
+    "latencyTestUrl": "https://www.gstatic.com/generate_204",
+    "dnsEchoName": "o-o.myaddr.l.google.com",
+    "dnsEchoType": "TXT",
+    "_dnsEchoComment": "Google 回显 EDNS Client Subnet 与解析器 IP。dnsleaktest.com 用的就是这类域名。"
   },
   "harden": {
     "strictRoute": true,
@@ -82,7 +85,11 @@
     "boundTimeoutMs": 3000,
     "_boundTimeoutComment": "绑卡探测的超时。它是最容易不通的一条（TUN 会拦死），没必要等满 12 秒；3 秒足够判定「这条路被堵住了」。",
     "userAgent": "dsh-clash-guard",
-    "proxyHost": "127.0.0.1"
+    "proxyHost": "127.0.0.1",
+    "identityEndpoint": "https://ipleak.net/json/",
+    "_identityComment": "返回 AS 号/ISP/国家。只看 IP 不同不够 —— 同一家 ISP 的另一个 IP 说明出口链路没换。",
+    "lookupEndpoint": "http://ip-api.com/json/{ip}?fields=status,country,countryCode,isp,as,asname",
+    "_lookupComment": "任意 IP 的 AS/ISP/国家反查。真 IP 的身份要靠它 —— 我们只能直接探测「当前出口」，真 IP 是校准存下来的历史值。"
   },
   "bypass": {
     "loopback": [
@@ -213,7 +220,8 @@
       "interface-bypass": "critical",
       "default-routes": "critical",
       "machine-traffic": "critical",
-      "system-resolver": "high"
+      "system-resolver": "high",
+      "dns-leak": "critical"
     },
     "blockingSeverities": [
       "critical",
@@ -233,6 +241,7 @@
       "i18n": "/i18n",
       "kernel": "/kernel",
       "ip": "/ip",
+      "identity": "/identity",
       "net": "/net",
       "latency": "/latency",
       "rules-stats": "/rules-stats"
@@ -279,6 +288,7 @@
     "status": "clash_status",
     "mode": "clash_mode",
     "verify": "clash_verify",
+    "identity": "clash_identity",
     "nodes": "clash_nodes",
     "calibrate": "clash_calibrate",
     "latency": "clash_latency"
