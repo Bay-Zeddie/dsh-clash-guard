@@ -154,7 +154,9 @@
       "tipSafe": "出口 {proxy}，真 IP {real}，没有检测到任何泄漏因素。",
       "tipLeaking": "检测到泄漏因素，真实身份正在或即将暴露：\n{reason}",
       "tipWeak": "没有立即泄漏，但防护不完整：\n{reason}",
-      "fixesHead": "修复建议："
+      "fixesHead": "修复建议：",
+      "clickToFix": "点击立即切到「全局」档并重新检测",
+      "clickToRecheck": "点击立即重新检测"
     }
   },
   "en": {
@@ -312,7 +314,9 @@
       "tipSafe": "Exit {proxy}, real IP {real}, no leak factor detected.",
       "tipLeaking": "Leak factors detected — your real identity is or will be exposed:\n{reason}",
       "tipWeak": "No immediate leak, but protection is incomplete:\n{reason}",
-      "fixesHead": "How to fix:"
+      "fixesHead": "How to fix:",
+      "clickToFix": "Click to switch to Global and re-check",
+      "clickToRecheck": "Click to re-check now"
     }
   }
 }
