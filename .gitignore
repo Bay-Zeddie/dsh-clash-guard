@@ -1,5 +1,7 @@
-﻿node_modules/
+node_modules/
 *.png
 *.log
 .DS_Store
 tools/_serve.mjs
+tests/_*.mjs
+tools/_*.mjs
