@@ -106,7 +106,15 @@
       "traffic",
       "重置"
     ],
-    "_infoNodeComment": "机场信息节点（显示订阅余额/到期的假节点）不能出现在可切换列表里：切到它等于断网。"
+    "_infoNodeComment": "机场信息节点（显示订阅余额/到期的假节点）不能出现在可切换列表里：切到它等于断网。",
+    "groupTypes": [
+      "Selector",
+      "URLTest",
+      "Fallback",
+      "LoadBalance",
+      "Relay"
+    ],
+    "_groupTypesComment": "策略组类型。这些不是叶子节点：切到它们只是把选择权交给组内策略（延迟永远显示 —），混在节点列表里会让用户困惑。列表里过滤掉，但 GLOBAL 本身仍可切换。"
   },
   "discovery": {
     "appDirPatterns": [
