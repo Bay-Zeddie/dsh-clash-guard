@@ -294,6 +294,49 @@ const nodesResult = {
 
 /** /ip 的五种结论。 */
 const ipVariants = {
+  // **新的全因素判定**：任一 critical 泄漏因素 → 红
+  leaking: {
+    ok: true, phase: 'ok', verdict: 'leaking', tone: 'off', realIp, exposedPaths: [],
+    reason: 'DNS 泄漏到本地运营商；TUN 未开启',
+    factors: [
+      { id: 'dns-leak', level: 'critical', title: 'DNS 泄漏到本地运营商', detail: 'DNS 出口在 China Mobile（AS56041）—— 你解析的域名被本地看到' },
+      { id: 'tun-off', level: 'critical', title: 'TUN 未开启', detail: 'TUN 关闭时整机流量不走代理' },
+      { id: 'strict-route-off', level: 'high', title: '严格路由未开启', detail: 'strict-route 关闭时绑卡流量可以绕过 TUN' },
+    ],
+    system: { ip: '103.187.168.155', ok: true },
+    proxy: { ip: '103.187.168.155', ok: true },
+    bound: { ip: '', ok: false, detail: 'timeout' },
+    adapter: '10.252.28.236', mode: 'global', modeName: 'global',
+  },
+  risky: {
+    ok: true, phase: 'ok', verdict: 'risky', tone: 'off', realIp, exposedPaths: [],
+    reason: '系统解析未走 fake-ip',
+    factors: [
+      { id: 'system-resolver', level: 'high', title: '系统解析未走 fake-ip', detail: '系统解析得到真实地址 223.106.89.226' },
+    ],
+    system: { ip: '103.187.168.155', ok: true },
+    proxy: { ip: '103.187.168.155', ok: true },
+    bound: { ip: '', ok: false, detail: 'timeout' },
+    adapter: '10.252.28.236', mode: 'global', modeName: 'global',
+  },
+  weak: {
+    ok: true, phase: 'ok', verdict: 'weak', tone: 'warn', realIp, exposedPaths: [],
+    reason: 'fake-ip 未生效',
+    factors: [
+      { id: 'fake-ip-off', level: 'warn', title: 'fake-ip 未生效', detail: '没有 fake-ip，DNS 解析结果可能是真实地址' },
+    ],
+    system: { ip: '103.187.168.155', ok: true },
+    proxy: { ip: '103.187.168.155', ok: true },
+    bound: { ip: '', ok: false, detail: 'timeout' },
+    adapter: '10.252.28.236', mode: 'global', modeName: 'global',
+  },
+  safe: {
+    ok: true, phase: 'ok', verdict: 'safe', tone: 'on', realIp, exposedPaths: [], reason: '没有任何泄漏因素', factors: [],
+    system: { ip: '103.187.168.155', ok: true },
+    proxy: { ip: '103.187.168.155', ok: true },
+    bound: { ip: '', ok: false, detail: 'timeout' },
+    adapter: '10.252.28.236', mode: 'global', modeName: 'global',
+  },
   masked: {
     ok: true, phase: 'ok', verdict: 'masked', tone: 'on', realIp, exposedPaths: [],
     system: { ip: '103.187.168.155', ok: true },

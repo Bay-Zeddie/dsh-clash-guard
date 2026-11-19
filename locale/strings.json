@@ -145,7 +145,14 @@
       "pathRealMissing": "校准真 IP：尚未校准",
       "tipClick": "点击立即重新检测",
       "checkedAt": "上次检测",
-      "refreshing": "正在后台刷新…"
+      "refreshing": "正在后台刷新…",
+      "leaking": "正在泄漏",
+      "risky": "有暴露风险",
+      "weak": "防护不完整",
+      "factorsHead": "命中的泄漏因素：",
+      "tipSafe": "出口 {proxy}，真 IP {real}，没有检测到任何泄漏因素。",
+      "tipLeaking": "检测到泄漏因素，真实身份正在或即将暴露：\n{reason}",
+      "tipWeak": "没有立即泄漏，但防护不完整：\n{reason}"
     }
   },
   "en": {
@@ -294,7 +301,14 @@
       "pathRealMissing": "Calibrated real IP: not calibrated",
       "tipClick": "Click to re-check now",
       "checkedAt": "Checked",
-      "refreshing": "Refreshing in the background…"
+      "refreshing": "Refreshing in the background…",
+      "leaking": "Leaking",
+      "risky": "Exposure risk",
+      "weak": "Incomplete",
+      "factorsHead": "Leak factors hit:",
+      "tipSafe": "Exit {proxy}, real IP {real}, no leak factor detected.",
+      "tipLeaking": "Leak factors detected — your real identity is or will be exposed:\n{reason}",
+      "tipWeak": "No immediate leak, but protection is incomplete:\n{reason}"
     }
   }
 }
