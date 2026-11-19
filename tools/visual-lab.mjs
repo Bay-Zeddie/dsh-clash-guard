@@ -50,7 +50,13 @@ const react = {
     const index = cursor
     cursor += 1
     if (!(index in store)) store[index] = typeof init === 'function' ? init() : init
-    return [store[index], (next) => { store[index] = typeof next === 'function' ? next(store[index]) : next }]
+    return [store[index], (next) => {
+      const value = typeof next === 'function' ? next(store[index]) : next
+      if (store[index] === value) return
+      store[index] = value
+      // 视觉台交互：setter 触发根组件重渲染（只重绘，不重置 store）
+      if (typeof globalThis.__labRerender === 'function') globalThis.__labRerender()
+    }]
   },
   useEffect(fn) { effects.push(fn) },
   useCallback(fn) { return fn },
@@ -103,6 +109,30 @@ const esc = (text) => String(text)
  *      于是 children 再次被合并进新的 props —— 每层都读 `props.children`
  *      就不会重复，也不会丢。
  */
+/** 视觉台的点击处理器表：toHtml 收集，bindLabEvents 绑定。 */
+const labHandlers = []
+
+/**
+ * 给渲染出的 DOM 绑上点击处理器。
+ *
+ * 视觉台原本是纯静态的（onClick 被 toHtml 丢弃），所以折叠、切换这类
+ * 交互完全测不到 —— 点了没反应，等于没测。这里补上最小可用的绑定：
+ * 用 `data-lab-click` 索引回 `labHandlers`。
+ */
+function bindLabEvents(root) {
+  if (!root || typeof root.querySelectorAll !== 'function') return
+  for (const el of root.querySelectorAll('[data-lab-click]')) {
+    const index = Number(el.getAttribute('data-lab-click').slice(1))
+    const handler = labHandlers[index]
+    if (typeof handler !== 'function') continue
+    el.addEventListener('click', function (event) {
+      if (el.disabled) return
+      event.preventDefault()
+      handler(event)
+    })
+  }
+}
+
 function toHtml(node) {
   if (node === null || node === undefined || node === false || node === true) return ''
   if (typeof node === 'string' || typeof node === 'number') return esc(node)
@@ -144,7 +174,14 @@ function toHtml(node) {
       continue
     }
     if (key === 'checked') { if (value === true) attrs.push('checked'); continue }
-    if (key === 'onClick' || key === 'onChange' || key === 'disabled') continue
+    if (key === 'onClick') {
+      // 视觉台交互：把 onClick 存进全局表，DOM 上只留索引
+      const id = 'c' + (labHandlers.length)
+      labHandlers.push(value)
+      attrs.push(`data-lab-click="${id}"`)
+      continue
+    }
+    if (key === 'onChange' || key === 'disabled') continue
     attrs.push(`${key}="${esc(value)}"`)
   }
 
@@ -372,6 +409,10 @@ function renderWith(component, values) {
 }
 
 const sections = []
+/** 通过项在折叠时也要能展开 —— 先把它们的 HTML 存下来给浏览器端补入。 */
+const passedCheckHtml = (auditResult.checks || [])
+  .filter(function (c) { return c.ok === true })
+  .map(function (c) { return toHtml(I.CheckRow({ check: c })) })
 
 /* —— 指示灯：五种结论 —— */
 sections.push('<h2>出口 IP 指示灯</h2><p class="note">五种结论 + 检测中 / 后台刷新。悬停看 title。</p><div class="row">')
@@ -386,18 +427,25 @@ sections.push(`<div class="cell"><div class="label">refreshing（后台）</div>
 sections.push('</div>')
 
 /* —— 面板：可达 —— */
-sections.push('<h2>主面板 · 控制器可达</h2><p class="note">四张卡片：模式 / 泄漏审计 / 出口节点 / 加固项，外加内核与服务。</p><div class="panel">')
+sections.push('<h2>主面板 · 控制器可达（可交互）</h2><p class="note">四张卡片：模式 / 泄漏审计 / 出口节点 / 加固项，外加内核与服务。<strong>点「展开通过项」可测折叠。</strong></p><div class="panel" id="lab-live-panel">')
 {
-  const tree = renderWith(I.GuardPanel, [
-    [0, stateReachable],   // state
-    [1, auditResult],      // audit
-    [2, nodesResult],      // nodes
-    [3, ''],               // busy
-    [4, ''],               // error
-    [5, defaults],         // settings
-    [6, ''],               // saved
-    [7, kernelResult.state], // kernel
-  ])
+  // 交互版：setter 触发重渲染，DOM 原地替换
+  const initial = [
+    [0, stateReachable], [1, auditResult], [2, nodesResult], [3, ''],
+    [4, ''], [5, defaults], [6, ''], [7, kernelResult.state],
+  ]
+  const seedStore = () => { store.length = 0; for (const [i, v] of initial) store[i] = v }
+  seedStore()
+  let firstPaint = true
+  globalThis.__labRerender = () => {
+    cursor = 0
+    const host = document.getElementById('lab-live-panel')
+    if (!host) return
+    const tree = I.GuardPanel({})
+    host.innerHTML = toHtml(tree)
+    bindLabEvents(host)
+  }
+  const tree = renderWith(I.GuardPanel, initial)
   sections.push(toHtml(tree))
 }
 sections.push('</div>')
@@ -538,6 +586,53 @@ ${css}
   把鼠标停在指示灯上看 title；缩窗口到 &lt;1100px / &lt;860px 看标签折叠。
 </p>
 ${sections.join('\n')}
+<script>
+window.__labPassedChecks = ${JSON.stringify(passedCheckHtml)}
+</script>
+<script>
+/* 视觉台交互：把服务端收集的 onClick 处理器在浏览器里重放。
+   处理器本身是闭包，无法序列化 —— 所以页面里重建同样的最小状态机。 */
+(function () {
+  // 折叠开关：把「展开通过项」按钮接上
+  document.querySelectorAll('[data-lab-click]').forEach(function (el) {
+    var cls = el.className || ''
+    if (cls.indexOf('dskg-toggle-checks') >= 0) {
+      el.addEventListener('click', function () {
+        var card = el.closest('.dskg-card')
+        if (!card) return
+        var open = el.getAttribute('aria-expanded') === 'true'
+        var next = !open
+        el.setAttribute('aria-expanded', next ? 'true' : 'false')
+        // 切换通过项显隐
+        var host = card.querySelector('.dskg-checks')
+        if (!host) return
+        var passed = host.querySelectorAll('.dskg-check[data-ok="1"]')
+        passed.forEach(function (n) { n.style.display = next ? '' : 'none' })
+        // 首次展开时通过项可能根本没渲染 —— 从模板数据补
+        if (next && passed.length === 0 && window.__labPassedChecks) {
+          window.__labPassedChecks.forEach(function (html) {
+            var wrap = document.createElement('div')
+            wrap.innerHTML = html
+            var node = wrap.firstElementChild
+            if (node) host.appendChild(node)
+          })
+          window.__labPassedChecks = null
+        }
+        // 更新文案
+        var label = el.querySelector('.dskg-caret')
+        if (label) label.textContent = next ? '▾' : '▸'
+        var text = el.textContent.replace(/^[▸▾]\s*/, '')
+        el.textContent = ''
+        var caret = document.createElement('span')
+        caret.className = 'dskg-caret'
+        caret.textContent = next ? '▾' : '▸'
+        el.appendChild(caret)
+        el.appendChild(document.createTextNode(' ' + (next ? '收起通过项' : text)))
+      })
+    }
+  })
+})()
+</script>
 </body>
 </html>
 `

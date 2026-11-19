@@ -96,7 +96,9 @@
       "speedTestHint": "并发测全组延迟，最快的节点排最前",
       "auditHint": "全组泄漏审计，约 9 秒",
       "calibrateHint": "记录当前出口 IP 作为对比基准（需先切到「关闭」档）",
-      "dismiss": "关闭提示"
+      "dismiss": "关闭提示",
+      "showPassed": "展开 {n} 项通过",
+      "hidePassed": "收起通过项"
     },
     "indicator": {
       "label": "出口 IP",
@@ -223,7 +225,9 @@
       "speedTestHint": "Test all nodes in parallel, fastest first",
       "auditHint": "Full leak audit, ~9s",
       "calibrateHint": "Record current egress IP as baseline (switch to Off first)",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "showPassed": "Show {n} passed",
+      "hidePassed": "Hide passed"
     },
     "indicator": {
       "label": "Egress IP",
