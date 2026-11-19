@@ -562,8 +562,11 @@ PATCH /configs {"dns":{...}}  →  HTTP 204（看起来成功）
 1. **WFP kill-switch**（见上）—— 唯一能真正堵住绑卡直连的手段
 2. **/connections WebSocket 订阅** —— mihomo 支持实时推送连接表，
    比指示灯 30s 轮询实时得多；需要 DSH 侧开 WebSocket 通道
-3. **秘密管理** —— Clash Verge Rev 默认 secret 是 `set-your-secret`
-   （官方讨论 #6951 确认），审计应检查它是否还是默认值
+3. ~~秘密管理~~ **已实施**：`controller-secret` 审计项（21 项之一）
+4. **节点延迟排行** —— **已实施**：`GET /latency` 路由 + `clash_latency` 工具
+   （借鉴 metacubexd / zashboard 的核心交互，mihomo /group/{name}/delay API）
+5. **规则命中统计** —— **已实施**：`GET /rules-stats` 路由（3877 条规则里
+   仅 19 条活跃，死规则占比是配置质量直接指标）
 
 ## License
 

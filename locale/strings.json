@@ -90,7 +90,10 @@
       "healDone": "网络已恢复",
       "healPartial": "部分修复，剩余问题 ",
       "healFailed": "修复失败，看日志",
-      "healHint": "DNS 指向死隧道地址或代理指向死端口时，一键恢复上网"
+      "healHint": "DNS 指向死隧道地址或代理指向死端口时，一键恢复上网",
+      "speedTest": "测速",
+      "testing": "测速中…",
+      "speedTestHint": "并发测全组延迟，最快的节点排最前"
     },
     "indicator": {
       "label": "出口 IP",
@@ -211,7 +214,10 @@
       "healDone": "Network restored",
       "healPartial": "Partially repaired, remaining: ",
       "healFailed": "Repair failed, see logs",
-      "healHint": "Fix DNS pointing to a dead tunnel or a dead proxy port, restore connectivity"
+      "healHint": "Fix DNS pointing to a dead tunnel or a dead proxy port, restore connectivity",
+      "speedTest": "Speed test",
+      "testing": "Testing…",
+      "speedTestHint": "Test all nodes in parallel, fastest first"
     },
     "indicator": {
       "label": "Egress IP",
