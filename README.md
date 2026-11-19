@@ -488,6 +488,25 @@ WLAN 的 DNS 还写着 198.18.0.2（TUN 网关）—— 那个地址已无人监
 
 ---
 
+## 绑卡直连的根治路线（研究结论，待实施）
+
+sing-tun（mihomo 的 TUN 库）在 Windows 用 WFP 实现 strict-route。真机 WFP dump
+验证了系统里有 9 条 `Meta` 规则 —— **唯独没有 v4 全局 BLOCK**（`tun_windows.go`
+L250-262 被上游注释）。这就是「strict-route: true 但绑物理网卡仍能直连」的最终答案。
+
+真正可行的 kill-switch 是 WireGuard-Windows 的设计（`blocker.go`）：同一 WFP
+子层内 **PERMIT 权重高于 BLOCK 即可赢** —— permit mihomo(15) / permit DSH(15) /
+loopback(13) / TUN+DHCP(12) / **blockAll(0)**。约 300 行 C# P/Invoke，DYNAMIC
+会话进程退出规则自动消失。已验证 fwpuclnt.dll 可从用户态调。
+
+---
+
+### 信息节点过滤
+
+机场的「剩余流量」「套餐到期」这类占位假节点没有出网能力，切到它等于断网。
+`bypass.infoNodePatterns`（9 个匹配模式）在列表过滤与切换双重拦截，
+实测 pick 信息节点返回明确错误。
+
 ## 泄漏检测：19 项，全部实测可判定
 
 审计不读「开关脸色」，每条都是独立探针。
