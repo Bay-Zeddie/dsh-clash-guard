@@ -282,7 +282,9 @@
     "retryDelayMs": 400,
     "maxAttempts": 8,
     "maxContentWidth": 960,
-    "topClearanceVar": "--dsh-frame-top-clearance"
+    "topClearanceVar": "--dsh-frame-top-clearance",
+    "indicatorFastMs": 3000,
+    "_indicatorFastComment": "快档周期。只测三条出口 IP + TUN 状态 —— 「IP 暴露了吗」2 秒内就有答案。慢档（indicatorPollMs）跑全量因子。"
   },
   "tools": {
     "status": "clash_status",
