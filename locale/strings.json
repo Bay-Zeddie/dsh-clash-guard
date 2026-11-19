@@ -20,7 +20,7 @@
       "sectionAudit": "泄漏审计",
       "sectionAuditNote": "每一条都是可判定的事实。红色项意味着真实 IP 可能正在暴露。",
       "sectionNodes": "出口节点",
-      "sectionNodesNote": "全局模式下，这一组的选择决定所有流量走哪个节点。直连/拒绝类节点已过滤。",
+      "sectionNodesNote": "全局模式下，这一组的选择决定所有流量走哪个节点。直连/拒绝类与机场信息节点已过滤；点「测速」后按延迟排序。",
       "sectionSettings": "加固项",
       "sectionSettingsNote": "这些开关只影响「全局」档位执行哪些加固动作。关掉某一项就是主动接受那一条泄漏面。",
       "runAudit": "运行审计",
@@ -93,7 +93,9 @@
       "healHint": "DNS 指向死隧道地址或代理指向死端口时，一键恢复上网",
       "speedTest": "测速",
       "testing": "测速中…",
-      "speedTestHint": "并发测全组延迟，最快的节点排最前"
+      "speedTestHint": "并发测全组延迟，最快的节点排最前",
+      "auditHint": "全组泄漏审计，约 9 秒",
+      "calibrateHint": "记录当前出口 IP 作为对比基准（需先切到「关闭」档）"
     },
     "indicator": {
       "label": "出口 IP",
@@ -144,7 +146,7 @@
       "sectionAudit": "Leak audit",
       "sectionAuditNote": "Every row is a decidable fact. A red row means the real IP may be exposed.",
       "sectionNodes": "Exit nodes",
-      "sectionNodesNote": "In global mode this group decides which node every packet uses. Direct/reject entries are filtered out.",
+      "sectionNodesNote": "In global mode this group decides which node carries all traffic. Terminal and info placeholder nodes are filtered; after Speed test the list sorts by latency.",
       "sectionSettings": "Hardening",
       "sectionSettingsNote": "These only affect what the Global switch enforces. Turning one off means accepting that leak surface.",
       "runAudit": "Run audit",
@@ -217,7 +219,9 @@
       "healHint": "Fix DNS pointing to a dead tunnel or a dead proxy port, restore connectivity",
       "speedTest": "Speed test",
       "testing": "Testing…",
-      "speedTestHint": "Test all nodes in parallel, fastest first"
+      "speedTestHint": "Test all nodes in parallel, fastest first",
+      "auditHint": "Full leak audit, ~9s",
+      "calibrateHint": "Record current egress IP as baseline (switch to Off first)"
     },
     "indicator": {
       "label": "Egress IP",
