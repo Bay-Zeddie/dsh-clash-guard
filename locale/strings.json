@@ -118,7 +118,8 @@
       "identityLeaking": "正在泄漏",
       "identityUnknown": "无法判定",
       "identityDirectHint": "当前是「关闭」档，出口就是真 IP —— 这是该档的预期状态。要隐藏身份请切到「全局」。",
-      "nodesDirectHint": "「关闭」档下节点不参与出网，所以延迟都测不到（显示「不可用」）。切到「全局」后节点才会生效。"
+      "nodesDirectHint": "「关闭」档下节点不参与出网，所以延迟都测不到（显示「不可用」）。切到「全局」后节点才会生效。",
+      "identityRisky": "有暴露风险"
     },
     "indicator": {
       "label": "出口 IP",
@@ -152,7 +153,8 @@
       "factorsHead": "命中的泄漏因素：",
       "tipSafe": "出口 {proxy}，真 IP {real}，没有检测到任何泄漏因素。",
       "tipLeaking": "检测到泄漏因素，真实身份正在或即将暴露：\n{reason}",
-      "tipWeak": "没有立即泄漏，但防护不完整：\n{reason}"
+      "tipWeak": "没有立即泄漏，但防护不完整：\n{reason}",
+      "fixesHead": "修复建议："
     }
   },
   "en": {
@@ -274,7 +276,8 @@
       "identityLeaking": "Leaking",
       "identityUnknown": "Undetermined",
       "identityDirectHint": "You are in Off mode, so the exit is your real IP — that is expected. Switch to Global to hide your identity.",
-      "nodesDirectHint": "In Off mode nodes carry no traffic, so no latency can be measured (shown as unavailable). Switch to Global for nodes to take effect."
+      "nodesDirectHint": "In Off mode nodes carry no traffic, so no latency can be measured (shown as unavailable). Switch to Global for nodes to take effect.",
+      "identityRisky": "Exposure risk"
     },
     "indicator": {
       "label": "Egress IP",
@@ -308,7 +311,8 @@
       "factorsHead": "Leak factors hit:",
       "tipSafe": "Exit {proxy}, real IP {real}, no leak factor detected.",
       "tipLeaking": "Leak factors detected — your real identity is or will be exposed:\n{reason}",
-      "tipWeak": "No immediate leak, but protection is incomplete:\n{reason}"
+      "tipWeak": "No immediate leak, but protection is incomplete:\n{reason}",
+      "fixesHead": "How to fix:"
     }
   }
 }
