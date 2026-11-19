@@ -36,7 +36,8 @@
       "_enabledComment": "检测到泄漏时自动切到安全档。默认关：自动动作会打断正在跑的扫描，得由用户显式打开。",
       "onLeak": "global",
       "cooldownMs": 60000
-    }
+    },
+    "latencyTestUrl": "https://www.gstatic.com/generate_204"
   },
   "harden": {
     "strictRoute": true,
@@ -224,7 +225,9 @@
       "i18n": "/i18n",
       "kernel": "/kernel",
       "ip": "/ip",
-      "net": "/net"
+      "net": "/net",
+      "latency": "/latency",
+      "rules-stats": "/rules-stats"
     }
   },
   "locale": {
@@ -269,7 +272,8 @@
     "mode": "clash_mode",
     "verify": "clash_verify",
     "nodes": "clash_nodes",
-    "calibrate": "clash_calibrate"
+    "calibrate": "clash_calibrate",
+    "latency": "clash_latency"
   },
   "modes": {
     "global": "global",
