@@ -83,6 +83,8 @@ function boot(payloadFor) {
     resetCursor() { cursor = 0 },
     runEffects() { for (const fn of effects.splice(0)) { try { fn() } catch { /* ignore */ } } },
     clearCalls() { calls.length = 0 },
+    /** 当前 hook 存储快照（验证 setter 是否真的写了值）。 */
+    storeSnapshot() { return store.slice() },
   }
 }
 
@@ -146,8 +148,14 @@ async function mountPanel(env) {
 
 /** 深度找第一个匹配的节点。 */
 function find(node, predicate, depth = 0) {
-  if (!node || typeof node !== 'object' || depth > 12) return null
+  if (!node || typeof node !== 'object' || depth > 16) return null
   if (predicate(node)) return node
+  if (typeof node.type === 'function' && node.props !== undefined) {
+    try {
+      const hit = find(node.type(node.props), predicate, depth + 1)
+      if (hit) return hit
+    } catch { /* 组件抛错就跳过 */ }
+  }
   for (const child of node.children ?? []) {
     const hit = find(child, predicate, depth + 1)
     if (hit) return hit
@@ -156,15 +164,57 @@ function find(node, predicate, depth = 0) {
 }
 
 /** 找所有匹配的节点。 */
+/**
+ * 遍历渲染树。
+ *
+ * **必须展开函数组件**：`NodesList` / `AuditChecks` 这类组件返回的树
+ * 挂在 `type(props)` 里，不在 `node.children` 上 —— 不展开就找不到它们
+ * 内部的按钮，测试会误报「找不到节点按钮」。
+ */
 function findAll(node, predicate, out = [], depth = 0) {
-  if (!node || typeof node !== 'object' || depth > 12) return out
+  if (!node || typeof node !== 'object' || depth > 16) return out
   if (predicate(node)) out.push(node)
+  if (typeof node.type === 'function' && node.props !== undefined) {
+    try {
+      findAll(node.type(node.props), predicate, out, depth + 1)
+    } catch { /* 组件抛错就跳过 */ }
+  }
   for (const child of node.children ?? []) findAll(child, predicate, out, depth + 1)
   return out
 }
 
+/** 递归收集节点下的全部文字（含嵌套 span 里的）。 */
+function deepText(node, depth = 0) {
+  if (depth > 16) return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (!node || typeof node !== 'object') return ''
+  const parts = []
+  if (typeof node.type === 'function' && node.props !== undefined) {
+    try { parts.push(deepText(node.type(node.props), depth + 1)) } catch { /* ignore */ }
+  }
+  const fromProps = node.props?.children
+  if (fromProps !== undefined && fromProps !== null) {
+    const kids = Array.isArray(fromProps) ? fromProps : [fromProps]
+    for (const kid of kids) parts.push(deepText(kid, depth + 1))
+  }
+  for (const child of node.children ?? []) parts.push(deepText(child, depth + 1))
+  return parts.join('')
+}
+
 const isButton = node => node.type === 'button'
-const textOf = node => (node.children ?? []).filter(c => typeof c === 'string').join('')
+/**
+ * 提取节点自身的直接文字。
+ *
+ * 兼容两种存法：`node.children`（rest 参数）与 `props.children`
+ * （createElement 合并过）。只看一处会漏掉分组头这类用 props 传子节点的元素。
+ */
+const textOf = node => {
+  const fromProps = node.props?.children
+  const kids = fromProps === undefined || fromProps === null
+    ? (node.children ?? [])
+    : (Array.isArray(fromProps) ? fromProps : [fromProps])
+  return kids.filter(c => typeof c === 'string').join('')
+}
 
 /* ---------------- 用例 ---------------- */
 
@@ -378,6 +428,85 @@ test('所有请求都带 JSON 头（写操作必须）', async () => {
   const headers = post.headers ?? {}
   const hasContentType = Object.keys(headers).some(k => k.toLowerCase() === 'content-type')
   assert.ok(hasContentType, `POST 缺 content-type：${JSON.stringify(headers)}`)
+})
+
+test('节点列表按地区分组，每组带计数', async () => {
+  const env = boot(payloadFor)
+  const tree = await mountPanel(env)
+
+  const heads = findAll(tree, n => isButton(n) && n.props.className === 'dskg-group-head')
+  assert.ok(heads.length > 0, '没有地区分组头')
+  // 每个分组头都应有 aria-expanded 与计数
+  for (const head of heads) {
+    assert.equal(head.props['aria-expanded'], 'true', '分组默认应展开')
+    const label = deepText(head)
+    assert.ok(label.length > 0, '分组头缺少文字')
+    assert.ok(/\d/.test(label), `分组头应带计数，实际「${label}」`)
+  }
+})
+
+test('搜索框存在且有 placeholder', async () => {
+  const env = boot(payloadFor)
+  const tree = await mountPanel(env)
+
+  const input = findAll(tree, n => n.type === 'input' && n.props.className === 'dskg-search')[0]
+  assert.ok(input, '找不到搜索框')
+  assert.ok(input.props.placeholder && input.props.placeholder.length > 0, '搜索框缺 placeholder')
+  assert.equal(typeof input.props.onInput, 'function', '搜索框没有 onInput')
+})
+
+test('搜索过滤：输入关键词后只剩匹配节点', async () => {
+  const env = boot(payloadFor)
+  const tree = await mountPanel(env)
+
+  const input = findAll(tree, n => n.type === 'input' && n.props.className === 'dskg-search')[0]
+  assert.ok(input, '找不到搜索框')
+
+  // 输入一个只匹配部分节点的关键词
+  env.resetCursor()
+  input.props.onInput({ target: { value: '日本' } })
+  const after = env.mod.exports.__internals.GuardPanel({})
+
+  const names = findAll(after, n => typeof n.props?.className === 'string' && n.props.className === 'dskg-nm')
+    .map(n => (n.children ?? []).join(''))
+  assert.ok(names.length > 0, '过滤后不应为空')
+  assert.ok(names.every(n => n.includes('日本')), `过滤结果含非匹配节点：${names.join(', ')}`)
+})
+
+test('搜索无匹配时给出提示而不是空白', async () => {
+  const env = boot(payloadFor)
+  const tree = await mountPanel(env)
+
+  const input = findAll(tree, n => n.type === 'input' && n.props.className === 'dskg-search')[0]
+  env.resetCursor()
+  input.props.onInput({ target: { value: 'zzz-不存在-zzz' } })
+  const after = env.mod.exports.__internals.GuardPanel({})
+
+  const hint = findAll(after, n => n.props?.className === 'dskg-hint')
+    .map(n => (n.children ?? []).join(''))
+    .join(' ')
+  assert.ok(hint.includes('没有匹配'), `无匹配时应提示，实际：${hint}`)
+})
+
+test('分组折叠：点击分组头会写入折叠状态', async () => {
+  const env = boot(payloadFor)
+  const tree = await mountPanel(env)
+
+  const head = findAll(tree, n => isButton(n) && n.props.className === 'dskg-group-head')[0]
+  assert.ok(head, '找不到分组头')
+  assert.equal(typeof head.props.onClick, 'function', '分组头没有 onClick')
+
+  // 折叠状态存在 NodesList 的 useState 里。测试桩的 setter 只写 store、
+  // 不触发重渲染，所以这里直接验证「点击后 store 里多了一个 truthy 项」
+  // —— 证明 onClick 真的走到了 setCollapsed，而不是空函数。
+  const before = env.storeSnapshot()
+  head.props.onClick()
+  const after = env.storeSnapshot()
+
+  const changed = after.filter((v, i) => v !== before[i])
+  assert.ok(changed.length > 0, '点击分组头后状态没有变化')
+  const collapsedState = changed.find(v => v && typeof v === 'object' && Object.values(v).some(Boolean))
+  assert.ok(collapsedState, `点击后应有折叠记录，实际变化：${JSON.stringify(changed)}`)
 })
 
 /* ---------------- 跑 ---------------- */

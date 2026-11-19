@@ -98,7 +98,11 @@
       "calibrateHint": "记录当前出口 IP 作为对比基准（需先切到「关闭」档）",
       "dismiss": "关闭提示",
       "showPassed": "展开 {n} 项通过",
-      "hidePassed": "收起通过项"
+      "hidePassed": "收起通过项",
+      "searchNodes": "搜索节点…",
+      "noMatch": "没有匹配的节点",
+      "regionOther": "其他",
+      "nodesEmpty": "还没有节点数据，点「刷新」加载"
     },
     "indicator": {
       "label": "出口 IP",
@@ -227,7 +231,11 @@
       "calibrateHint": "Record current egress IP as baseline (switch to Off first)",
       "dismiss": "Dismiss",
       "showPassed": "Show {n} passed",
-      "hidePassed": "Hide passed"
+      "hidePassed": "Hide passed",
+      "searchNodes": "Search nodes…",
+      "noMatch": "No matching nodes",
+      "regionOther": "Other",
+      "nodesEmpty": "No node data yet — click Refresh"
     },
     "indicator": {
       "label": "Egress IP",

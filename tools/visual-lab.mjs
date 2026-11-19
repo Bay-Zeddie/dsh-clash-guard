@@ -111,6 +111,8 @@ const esc = (text) => String(text)
  */
 /** 视觉台的点击处理器表：toHtml 收集，bindLabEvents 绑定。 */
 const labHandlers = []
+/** 输入处理器表（onInput）。 */
+const labInputHandlers = []
 
 /**
  * 给渲染出的 DOM 绑上点击处理器。
@@ -130,6 +132,12 @@ function bindLabEvents(root) {
       event.preventDefault()
       handler(event)
     })
+  }
+  for (const el of root.querySelectorAll('[data-lab-input]')) {
+    const index = Number(el.getAttribute('data-lab-input').slice(1))
+    const handler = labInputHandlers[index]
+    if (typeof handler !== 'function') continue
+    el.addEventListener('input', function (event) { handler(event) })
   }
 }
 
@@ -179,6 +187,12 @@ function toHtml(node) {
       const id = 'c' + (labHandlers.length)
       labHandlers.push(value)
       attrs.push(`data-lab-click="${id}"`)
+      continue
+    }
+    if (key === 'onInput') {
+      const id = 'i' + (labInputHandlers.length)
+      labInputHandlers.push(value)
+      attrs.push(`data-lab-input="${id}"`)
       continue
     }
     if (key === 'onChange' || key === 'disabled') continue
