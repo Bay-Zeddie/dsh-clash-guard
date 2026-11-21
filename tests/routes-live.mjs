@@ -17,10 +17,12 @@ const routes = new Map()
 // Windows 绝对路径必须先转成 file:// URL，否则 ESM loader 拒收 'c:' 协议
 const mod = await import(pathToFileURL(path.join(ROOT, 'lib', 'index.js')).href)
 
-mod.apply({
-  logger: { info: () => {}, warn: m => console.error('  [warn]', m) },
-  effect(fn) { const d = fn(); return () => { if (typeof d === 'function') d() } },
-  inject() {},
+/**
+ * cordis 桩（tests/cordis-stub.mjs）：webServer 必须走 inject ——
+ * index.js 的路由注册已改为 ctx.inject(['webServer'], cb) 形态。
+ */
+import { bootHost } from './cordis-stub.mjs'
+await bootHost({
   webServer: {
     register(route) {
       routes.set(route.path, route)
