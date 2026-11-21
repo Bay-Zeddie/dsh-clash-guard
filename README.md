@@ -372,13 +372,18 @@ dsh-clash-guard/
 │  ├─ egress.js          # 出口 IP 探测（CONNECT+TLS，零依赖）
 │  ├─ guard.js           # 加固 / 撤销 / 审计 / 切换 / 校准
 │  ├─ http.js            # /dsh-clash-guard/* 同源路由
-│  ├─ tools.js           # 5 个模型工具
+│  ├─ tools.js           # 7 个模型工具
+│  ├─ hostwatch.js       # 系统级看门狗的计划任务装/卸/查
+│  ├─ selfheal.js        # 网络体检 / 自愈 / 守护（含隧道地址登记簿）
 │  └─ client.js          # 浏览器半：三段式开关 + 设置页
+├─ bin/
+│  └─ hostwatch.mjs      # 计划任务的看门狗入口（独立于 DSH 进程）
 └─ tests/
    ├─ unit.test.mjs      # 纯函数（15 项）
    ├─ http.test.mjs      # 路由与 apply 健壮性（11 项）
    ├─ live.test.mjs      # 真实环境只读探测（12 段）
    ├─ apply.test.mjs     # 真实加固 + 撤销 + 复原验证
+   ├─ selfheal-live.mjs  # 制造死 DNS 故障 → 检出 → 自愈 → 还原
    └─ calibrate.test.mjs # 核心断言：全局出口 ≠ 真 IP
 ```
 
@@ -421,8 +426,8 @@ node tests/calibrate.test.mjs
 | 控制器不可达 | 面板显示「不可达」+ 全部候选与探测轨迹，不报假成功 |
 | 配置里管道名陈旧 | 逐个探测，用能应答的那个（本机实测就踩到了） |
 | 缺 `@deepseek-ai/dsh-tools` | 动态导入失败 → 只丢工具，路由与面板照常 |
-| 缺 `tools` 服务 | `ctx.inject` 抛错被捕获，插件照常加载 |
-| 缺 `webServer` | 硬依赖，Loader 不会挂载；面板没有数据源 |
+| 缺 `tools` 服务 | 检测 `ctx.tools.register` 不存在 → 如实 warn，插件照常加载 |
+| 缺 `webServer` | 硬依赖（`export inject` 声明）；服务不在 ctx 上时 warn「路由未注册」，不假装成功 |
 | 没有管理员权限 | 需要提权的步骤报 `needs elevation`，不假装成功 |
 | 没有基线 | 撤销时保守处理（不动 IPv6），并说明原因 |
 | `apply()` 抛任何错 | 全部捕获，只记日志 |
@@ -479,6 +484,24 @@ WLAN 的 DNS 还写着 198.18.0.2（TUN 网关）—— 那个地址已无人监
 | **守护** | 每 15 秒体检一次，命中自动修 | `selfheal.watchdog: true`（默认开） |
 
 **防误报**：内核活着时，物理网卡 DNS 指向 `198.18.0.2` 是**正常状态**（TUN 网关），不报警。只有「隧道地址 + 内核已死」同时成立才算故障 —— 第一版少了这个条件，内核正常运行也报红，那种误报会让用户学会忽略告警。
+
+### 2026-11-21 根治：判定段从内核配置读，不再信 defaults
+
+第三次复发暴露了更深一层的缺陷：订阅模板经常改写 fake-ip 段 —— 真机本机的 runtime/config.yaml 写的是 `fake-ip-range: 28.0.0.1/8`，而 defaults 里是 mihomo 出厂默认 `198.18.0.0/15`。旧判定只信 defaults，看门狗在这台机器上**永远**认不出死隧道地址，静默失效。现在的判定链：
+
+1. 运行时从内核真实在用的 `runtime/config.yaml` 读 `fake-ip-range`（`dns:` 块下的缩进键，用 `blockScalar` 取），defaults 只做兜底 —— 两段都参与判定；
+2. **隧道地址登记簿**：内核活着期间亲眼见过的隧道地址记入内存 + 磁盘（`$DSH_HOME/dsh-clash-guard/tunnel-dns.json`），内核死后只对这份确凿清单报警 —— `28.0.0.1/8` 这种大段不会误伤局域网网关，DSH 重启后仍有效。
+
+端到端实测：注入 `28.0.0.2` 到 WLAN → 体检检出 `dns-dead-tunnel` → 自动重置 → DNS 回到 DHCP 值，`tests/selfheal-live.mjs` 全绿。
+
+### 系统级看门狗（DSH 没开也守）
+
+插件内的守护跑在 DSH 进程里，DSH 一关它就停了 —— 而事故恰恰发生在「用完关掉一切」之后。`lib/hostwatch.js` + `bin/hostwatch.mjs` 提供系统级兜底：
+
+- **Windows 计划任务**（登录自启、管理员权限、`-ExecutionTimeLimit 0`），独立于 DSH 进程循环体检自愈，复用 `lib/selfheal.js` 同一套判定与修复，零重复实现；
+- 任务名固定（`selfheal.hostWatchTaskName`），安装幂等、卸载精确删除、stop 文件协议保证进程优雅退出；
+- 面板内核卡片「装开机守护」按钮 + `GET/POST /net` 路由（`?hostwatch=1` 查状态、`{hostwatch:'install'|'uninstall'}` 装/卸）；
+- **默认关**（`selfheal.hostWatch: false`）：往系统里注册计划任务必须由用户知情后一键开启。
 
 **直启内核已默认禁止**（`core.allowDirectSpawn: false`）：2026-11-18 插件 `spawn` 的内核成了孤儿进程，Clash 之后启动时报 `refusing a second core` 拒绝起核，同时 DNS 已被改走 → 断网。**内核是服务的孩子，不能由插件收养**。
 
