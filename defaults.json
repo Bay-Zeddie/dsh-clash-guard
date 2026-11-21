@@ -302,10 +302,12 @@
   },
   "verge": {
     "modeKey": "mode",
+    "instanceFile": "singleton-instance.json",
     "backupSuffix": ".clash-guard.bak",
     "tempSuffix": ".clash-guard.tmp",
     "writeRuntimeConfig": true,
-    "_writeRuntimeComment": "必须双写：runtime/config.yaml 是服务重启内核时直接读的那份，只写 clash-verge.yaml 会在内核重启后回退。"
+    "_writeRuntimeComment": "必须双写：runtime/config.yaml 是服务重启内核时直接读的那份，只写 clash-verge.yaml 会在内核重启后回退。",
+    "_instanceFileComment": "GUI 单实例记录（端口+token）。存在且端口有监听 = GUI 正在运行 → 切模式后要提示「勿在 GUI 点保存」。"
   },
   "selfheal": {
     "_comment": "网络自愈。防的是这个真实事故：Clash 非正常退出后物理网卡 DNS 停在 198.18.0.2（TUN 网关），内核已死 → 整机域名解析全部超时。2026-11-18 连续两次复发，靠人记着「正常退出」不管用。",
