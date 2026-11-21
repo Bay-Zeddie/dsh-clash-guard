@@ -316,7 +316,13 @@
     "watchdogMs": 15000,
     "_watchdogMsComment": "体检间隔。15 秒足够快（用户还没察觉就修好了），又不至于频繁跑 PowerShell。",
     "healOnStart": true,
-    "_healOnStartComment": "插件加载时先体检一次。进程刚起时最容易撞上上次的残留。"
+    "_healOnStartComment": "插件加载时先体检一次。进程刚起时最容易撞上上次的残留。",
+    "hostWatch": false,
+    "_hostWatchComment": "系统级看门狗（Windows 计划任务，开机自启、独立于 DSH 进程）。DSH 没开时也盯着。默认关：它会在系统里注册一个计划任务，装之前让用户知情；面板与 /net 路由有一键安装/卸载。",
+    "hostWatchTaskName": "dsh-clash-guard-hostwatch",
+    "_hostWatchTaskNameComment": "计划任务名。卸载按这个名字精确删除，不碰用户自己的任务。",
+    "hostWatchIntervalMs": 15000,
+    "_hostWatchIntervalMsComment": "系统级看门狗的体检间隔（独立于 DSH 内 watchdogMs，开机后不占前台资源）。"
   },
   "core": {
     "_comment": "内核生命周期。内核由 Windows 服务守护（开机自启），GUI 只是前端；插件可完全脱离 GUI 控制。",

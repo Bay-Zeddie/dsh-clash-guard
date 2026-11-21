@@ -129,10 +129,12 @@ const after = await inspectNetwork({ config, discovered })
 line('裁决', after.verdict)
 line('DNS', after.dnsServers.join(', ') || '(空)')
 
-// 真解析一次
+// 真解析一次（应答可能以 CNAME 开头，取所有记录里有 A 地址的那条）
 const { execFile } = await import('node:child_process')
 const resolveOk = await new Promise((resolve) => {
-  execFile('powershell', ['-NoProfile', '-Command', 'Resolve-DnsName www.baidu.com -Type A -QuickTimeout | Select-Object -First 1 -ExpandProperty IPAddress'], { timeout: 15000 }, (error, stdout) => {
+  execFile('powershell', ['-NoProfile', '-Command',
+    '(Resolve-DnsName www.baidu.com -Type A -QuickTimeout -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress } | Select-Object -First 1).IPAddress'],
+  { timeout: 15000 }, (error, stdout) => {
     resolve(!error && String(stdout).trim().length > 0 ? String(stdout).trim() : '')
   })
 })

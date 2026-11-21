@@ -26,13 +26,29 @@ const defaults = JSON.parse(fs.readFileSync('defaults.json', 'utf8'))
 
 const routes = new Map()
 const mod = await import(pathToFileURL(path.join(ROOT, 'lib', 'index.js')).href)
+/**
+ * 假 ctx 必须实现 cordis 的真实契约：`inject(deps, fn)` 把注入的服务传给
+ * 回调、`get(name)` 暴露服务。旧骨架 `inject(){}` 空实现让 webServer 从未
+ * 注入，13 条路由全没注册 —— 整个验收文件原来一直在测「空集」，所有
+ * 失败都是骨架的错，不是插件的错。
+ */
 mod.apply({
   logger: { info: () => {}, warn: m => console.error('  [warn]', m) },
+  get() { return null },
+  inject(deps, fn) {
+    if (Array.isArray(deps) && deps.includes('webServer')) {
+      fn({ webServer: { register(r) { routes.set(r.path, r); return () => routes.delete(r.path) } } })
+    }
+    // tools 服务依赖 dsh-tools（DSH hook 才有），纯 Node 下跳过 —— 路由验收不受影响
+  },
   effect(fn) { const d = fn(); return () => { if (typeof d === 'function') d() } },
-  inject() {},
   webServer: { register(r) { routes.set(r.path, r); return () => routes.delete(r.path) } },
 })
 await new Promise(r => setTimeout(r, 2500))
+if (routes.size === 0) {
+  console.error('✘ 路由一个都没注册 —— 骨架或插件契约断了，验收无法进行')
+  process.exit(1)
+}
 
 const prefix = defaults.http.prefix
 const R = defaults.http.routes
@@ -238,9 +254,13 @@ console.log('\n== 6. 指示灯三路径 vs 真实网络 ==')
   test('三路径结构完整', !!j?.system && !!j?.proxy && !!j?.bound,
     `system=${j?.system?.ip || '-'} proxy=${j?.proxy?.ip || '-'} bound=${j?.bound?.ok ? j.bound.ip : '被拦'}`)
 
-  // 代理路径的 IP 应该 ≠ 校准真 IP（masked）或 = 真 IP（exposed），二选一
+  // 代理路径的 IP 应该 ≠ 校准真 IP（safe）或 = 真 IP（leaking），二选一。
+  // verdict 体系已统一到指示灯那套（leak-factors.verdictFromFactors）：
+  // safe / leaking / risky / weak / uncalibrated / no-egress。
+  // 旧骨架只认 masked/exposed/bypassable —— 那是 identity 报告的词，
+  // 与指示灯的判定体系对不上，判定合法性的断言选错了词表。
   const verdict = j?.verdict
-  const plausible = ['masked', 'exposed', 'bypassable', 'uncalibrated', 'no-egress'].includes(verdict)
+  const plausible = ['safe', 'leaking', 'risky', 'weak', 'uncalibrated', 'no-egress'].includes(verdict)
   test(`判定合法: ${verdict}`, plausible, '')
 
   // 真实交叉：系统出口 IP 用独立 curl 验证（不信任插件的探测代码）
